@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PowerUp Drill - 一問一答学習アプリ</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+        }
+
+        .category-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .category-btn {
+            padding: 15px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            font-weight: bold;
+        }
+
+        .category-btn:hover, .category-btn.active {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .quiz-container {
+            display: none;
+            text-align: center;
+        }
+
+        .question-card {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .question {
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .answer-input {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.2rem;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            transition: border-color 0.3s ease;
+        }
+
+        .answer-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        .btn-check {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-show {
+            background: #FF9800;
+            color: white;
+        }
+
+        .btn-next {
+            background: #2196F3;
+            color: white;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .result.correct {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .result.incorrect {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .start-btn {
+            padding: 20px 40px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.3rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PowerUp Drill</h1>
+        
+        <div class="start-screen" id="startScreen">
+            <h2>学習カテゴリーを選択してください</h2>
+            <div class="category-selector">
+                <button class="category-btn" onclick="selectCategory('english')">英語</button>
+                <button class="category-btn" onclick="selectCategory('kanji')">漢字</button>
+                <button class="category-btn" onclick="selectCategory('all')">全カテゴリー</button>
+            </div>
+            <button class="start-btn" onclick="startQuiz()" style="display: none;" id="startBtn">学習を開始する</button>
+        </div>
+
+        <div class="quiz-container" id="quizContainer">
+            <div class="progress" id="progress"></div>
+            <div class="question-card">
+                <div class="question" id="question"></div>
+                <input type="text" class="answer-input" id="answerInput" placeholder="答えを入力してください">
+            </div>
+            <div class="buttons">
+                <button class="btn btn-check" onclick="checkAnswer()">答え合わせ</button>
+                <button class="btn btn-show" onclick="showAnswer()">答えを見る</button>
+                <button class="btn btn-next" onclick="nextQuestion()">次の問題</button>
+            </div>
+            <div id="result"></div>
+        </div>
+    </div>
+
+    <script>
+        const questions = {
+            english: [
+                { q: "「常識」を英語で？", a: "common sense" },
+                { q: "「外国為替市場」を英語で？", a: "foreign exchange market" },
+                { q: "「首脳会議」を英語で？", a: "summit meeting" }
+            ],
+            kanji: [
+                { q: "「防人」の読み方は？", a: "さきもり" },
+                { q: "「皐月」の読み方は？", a: "さつき" },
+                { q: "「知己」の読み方は？", a: "ちき" }
+            ]
+        };
+
+        let selectedCategory = '';
+        let currentQuestions = [];
+        let currentQuestionIndex = 0;
+
+        function selectCategory(category) {
+            selectedCategory = category;
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            document.getElementById('startBtn').style.display = 'block';
+        }
+
+        function startQuiz() {
+            if (selectedCategory === 'all') {
+                currentQuestions = [];
+                Object.values(questions).forEach(categoryQuestions => {
+                    currentQuestions = currentQuestions.concat(categoryQuestions);
+                });
+            } else {
+                currentQuestions = [...questions[selectedCategory]];
+            }
+
+            currentQuestionIndex = 0;
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('quizContainer').style.display = 'block';
+            showQuestion();
+        }
+
+        function showQuestion() {
+            if (currentQuestionIndex >= currentQuestions.length) {
+                alert('全問題終了！お疲れ様でした！');
+                location.reload();
+                return;
+            }
+
+            const question = currentQuestions[currentQuestionIndex];
+            document.getElementById('question').textContent = question.q;
+            document.getElementById('answerInput').value = '';
+            document.getElementById('result').innerHTML = '';
+            document.getElementById('progress').textContent = `問題 ${currentQuestionIndex + 1} / ${currentQuestions.length}`;
+        }
+
+        function checkAnswer() {
+            const userAnswer = document.getElementById('answerInput').value.trim().toLowerCase();
+            const correctAnswer = currentQuestions[currentQuestionIndex].a.toLowerCase();
+            const resultDiv = document.getElementById('result');
+
+            if (userAnswer === correctAnswer || 
+                userAnswer.replace(/\s+/g, '') === correctAnswer.replace(/\s+/g, '')) {
+                resultDiv.innerHTML = '<div class="result correct">正解！</div>';
+            } else {
+                resultDiv.innerHTML = `<div class="result incorrect">不正解。正解は「${currentQuestions[currentQuestionIndex].a}」です</div>`;
+            }
+        }
+
+        function showAnswer() {
+            document.getElementById('result').innerHTML = `<div class="result">正解: ${currentQuestions[currentQuestionIndex].a}</div>`;
+        }
+
+        function nextQuestion() {
+            currentQuestionIndex++;
+            showQuestion();
+        }
+    </script>
+</body>
+</html>
