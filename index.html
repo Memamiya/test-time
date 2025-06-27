@@ -101,6 +101,7 @@
             gap: 15px;
             justify-content: center;
             margin-top: 20px;
+            flex-wrap: wrap;
         }
 
         .btn {
@@ -118,14 +119,29 @@
             color: white;
         }
 
+        .btn-check:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+
         .btn-show {
             background: #FF9800;
             color: white;
         }
 
+        .btn-show:hover {
+            background: #e68900;
+            transform: translateY(-2px);
+        }
+
         .btn-next {
             background: #2196F3;
             color: white;
+        }
+
+        .btn-next:hover {
+            background: #1976D2;
+            transform: translateY(-2px);
         }
 
         .result {
@@ -148,6 +164,29 @@
             border: 1px solid #f5c6cb;
         }
 
+        .result.show-answer {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+
+        .progress {
+            margin-bottom: 20px;
+            text-align: center;
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .score {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            background: #e3f2fd;
+            border-radius: 10px;
+            color: #1976D2;
+            font-size: 1.2rem;
+        }
+
         .start-btn {
             padding: 20px 40px;
             background: #667eea;
@@ -158,6 +197,33 @@
             cursor: pointer;
             transition: all 0.3s ease;
             margin-top: 20px;
+        }
+
+        .start-btn:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .category-selector {
+                grid-template-columns: 1fr;
+            }
+
+            .buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -170,6 +236,13 @@
             <div class="category-selector">
                 <button class="category-btn" onclick="selectCategory('english')">英語</button>
                 <button class="category-btn" onclick="selectCategory('kanji')">漢字</button>
+                <button class="category-btn" onclick="selectCategory('idiom')">四字熟語</button>
+                <button class="category-btn" onclick="selectCategory('proverb')">ことわざ</button>
+                <button class="category-btn" onclick="selectCategory('antonym')">反義語</button>
+                <button class="category-btn" onclick="selectCategory('geography')">地理</button>
+                <button class="category-btn" onclick="selectCategory('history')">歴史</button>
+                <button class="category-btn" onclick="selectCategory('science')">理科</button>
+                <button class="category-btn" onclick="selectCategory('politics')">政治・経済</button>
                 <button class="category-btn" onclick="selectCategory('all')">全カテゴリー</button>
             </div>
             <button class="start-btn" onclick="startQuiz()" style="display: none;" id="startBtn">学習を開始する</button>
@@ -179,7 +252,7 @@
             <div class="progress" id="progress"></div>
             <div class="question-card">
                 <div class="question" id="question"></div>
-                <input type="text" class="answer-input" id="answerInput" placeholder="答えを入力してください">
+                <input type="text" class="answer-input" id="answerInput" placeholder="答えを入力してください" onkeypress="handleKeyPress(event)">
             </div>
             <div class="buttons">
                 <button class="btn btn-check" onclick="checkAnswer()">答え合わせ</button>
@@ -187,37 +260,541 @@
                 <button class="btn btn-next" onclick="nextQuestion()">次の問題</button>
             </div>
             <div id="result"></div>
+            <div class="score" id="score"></div>
         </div>
     </div>
 
     <script>
+        // 問題データベース（PDFファイルから全問題を抽出）
         const questions = {
             english: [
+                // 基本英語表現
                 { q: "「常識」を英語で？", a: "common sense" },
                 { q: "「外国為替市場」を英語で？", a: "foreign exchange market" },
-                { q: "「首脳会議」を英語で？", a: "summit meeting" }
+                { q: "「首脳会議」を英語で？", a: "summit meeting" },
+                { q: "「販売促進」を英語で？", a: "sales promotion" },
+                { q: "「非常口」を英語で？", a: "emergency exit" },
+                { q: "「立入禁止」を英語で？", a: "off limits" },
+                { q: "「起こさないでください」を英語で？", a: "don't disturb" },
+                { q: "「何て彼女は可愛いんだ！」を英語で？", a: "how pretty she is" },
+                { q: "「電車に間に合わない」を英語で？", a: "i will miss the train" },
+                { q: "「お母さん似だね」を英語で？", a: "you look like your mother" },
+                { q: "「愛が欲しいんだ」を英語で？", a: "i want love" },
+                { q: "「貴方ってカッコいい」を英語で？", a: "you are so cool" },
+                { q: "「ほっといてよ」を英語で？", a: "leave me alone" },
+                { q: "「久しぶりね」を英語で？", a: "i haven't seen you for a long time" },
+                { q: "「もう寝るわ」を英語で？", a: "it's time to go to bed" },
+                
+                // 会話表現
+                { q: "「どこから来ましたか？」を英語で？", a: "where do you come from" },
+                { q: "「どこに行きますか？」を英語で？", a: "where do you go" },
+                { q: "「何でしょうか？」を英語で？", a: "can i help you" },
+                { q: "「趣味はなんですか？」を英語で？", a: "what is your hobby" },
+                { q: "「駅はどこですか？」を英語で？", a: "where is the station" },
+                { q: "「遠いですか？」を英語で？", a: "is it so far away" },
+                { q: "「徒歩で5分以内です」を英語で？", a: "it's within 5 minutes on foot" },
+                { q: "「良い天気です」を英語で？", a: "it's fine" },
+                { q: "「両替してください」を英語で？", a: "please exchange" },
+                { q: "「お釣りをください」を英語で？", a: "give me the balance" },
+                { q: "「高いですね！」を英語で？", a: "it's expensive" },
+                { q: "「最近どう？」を英語で？", a: "what's up" },
+                { q: "「よく焼いてください」を英語で？", a: "please well-done" },
+                { q: "「また会いましょう」を英語で？", a: "see you again" },
+                
+                // 実用英語
+                { q: "「煙草を吸っていいですか？」を英語で？", a: "may i smoke" },
+                { q: "「市内の観光地図はありますか？」を英語で？", a: "do you have a guide map of the city" },
+                { q: "「トイレはどこですか？」を英語で？", a: "where is the rest room" },
+                { q: "「日本円をドルにしてもらえますか？」を英語で？", a: "do you change japanese yen into dollars" },
+                { q: "「タクシーを呼んでください」を英語で？", a: "call a taxi please" },
+                { q: "「すいません、灰皿をください」を英語で？", a: "excuse me, may i have an ashtray" },
+                { q: "「鍵を部屋に置いたままドアロックしてしまいました」を英語で？", a: "excuse me, i am locked out" },
+                { q: "「試着してもいいですか？」を英語で？", a: "may i try this on" },
+                { q: "「クリーニングをお願いします」を英語で？", a: "laundry service, please" },
+                { q: "「パールハーバーに行くにはどのバスに乗ればいいですか？」を英語で？", a: "which bus should i take to pearl harbour" },
+                { q: "「精算をお願いします」を英語で？", a: "check please" },
+                { q: "「私は日本の島根県から来ました」を英語で？", a: "i came from shimane prefecture in japan" },
+                { q: "「いい加減にしてよ！」を英語で？", a: "fuck you" },
+                { q: "「英語はそんなに難しくありません」を英語で？", a: "english is not so difficult" },
+                { q: "「一緒に行きましょう」を英語で？", a: "let's go together" },
+                { q: "「まあ凄い！」を英語で？", a: "great" },
+                { q: "「またハワイに来たいです」を英語で？", a: "i want to come hawaii again" },
+                { q: "「番号が違います」を英語で？", a: "you have a wrong number" },
+                { q: "「どっちに行けばいいですか？」を英語で？", a: "which way can i go to" },
+                { q: "「電話が故障しています」を英語で？", a: "the telephone is out of order" },
+                { q: "「これをください」を英語で？", a: "may i have this one" },
+                { q: "「この国には初めてですか？」を英語で？", a: "do you come to this country for the first time" },
+                { q: "「必ずまた来ます」を英語で？", a: "i will come again for sure" },
+                { q: "「あなたの親切に感謝します」を英語で？", a: "i really thank you for your kindness" },
+                { q: "「郷に入らば郷に従え」を英語で？", a: "do in rome as the romans do" },
+                
+                // 英語ことわざ・慣用句
+                { q: "「光陰矢の如し」を英語で？", a: "time flies like an arrow" },
+                { q: "「転石こけむさらず」を英語で？", a: "a rolling stone gathers no moss" },
+                { q: "「失敗は成功のもと」を英語で？", a: "failure teaches success" },
+                { q: "「駐車禁止」を英語で？", a: "no parking" },
+                { q: "「注意」を英語で？", a: "caution" },
+                { q: "「立ち入り禁止」を英語で？", a: "keep off" },
+                { q: "「ペンキ塗りたて」を英語で？", a: "fresh paint" },
+                { q: "「最善を尽くす」を英語で？", a: "do one's best" },
+                { q: "「克服する」を英語で？", a: "get over" },
+                { q: "「〜に加えて」を英語で？", a: "in addition to" },
+                { q: "「goodの最上級」は？", a: "best" },
+                { q: "「実は・・・」を英語で？", a: "to tell the truth" },
+                { q: "「ようこそJapan」を英語で？", a: "welcome to japan" },
+                { q: "「原子力」を英語で？", a: "nuclear power" },
+                
+                // 前置詞問題
+                { q: "I went to MIC (　) foot の空欄に入る前置詞は？", a: "on" },
+                { q: "I am afraid (　) his death の空欄に入る前置詞は？", a: "of" },
+                { q: "I am looking forward (　) your letter の空欄に入る前置詞は？", a: "to" },
+                
+                // 英単語
+                { q: "acid rainの意味は？", a: "酸性雨" },
+                { q: "majorityの意味は？", a: "多数派" },
+                { q: "cellular phoneの意味は？", a: "携帯電話" },
+                { q: "tagの意味は？", a: "荷札" },
+                { q: "exchange rateの意味は？", a: "為替" },
+                { q: "deregulationの意味は？", a: "規制緩和" },
+                { q: "donorの意味は？", a: "提供者" },
+                { q: "brain deathの意味は？", a: "脳死" },
+                { q: "geniusの意味は？", a: "天才" },
+                { q: "electionの意味は？", a: "選挙" },
+                { q: "clone animalの意味は？", a: "クローン動物" },
+                { q: "taxの意味は？", a: "税金" },
+                { q: "noiseの意味は？", a: "雑音" },
+                { q: "boardの意味は？", a: "板" },
+                { q: "barrierの意味は？", a: "壁" },
+                { q: "mugの意味は？", a: "大型カップ" },
+                { q: "duplicateの意味は？", a: "複写" },
+                { q: "meanの意味は？", a: "意味する" },
+                { q: "recoveryの意味は？", a: "回復" },
+                { q: "sealerの意味は？", a: "アザラシ" },
+                { q: "contentsの意味は？", a: "内容" },
+                { q: "planetの意味は？", a: "惑星" },
+                { q: "shuttleの意味は？", a: "折り返し" },
+                { q: "capeの意味は？", a: "岬" },
+                { q: "economic growthの意味は？", a: "経済成長" },
+                { q: "depressionの意味は？", a: "不況" },
+                { q: "exportationの意味は？", a: "輸出" },
+                { q: "hackerの意味は？", a: "侵入者" },
+                { q: "politeの意味は？", a: "丁寧" },
+                { q: "financeの意味は？", a: "金融" },
+                { q: "discriminationの意味は？", a: "差別" },
+                { q: "concentrateの意味は？", a: "集中" },
+                { q: "nowadaysの意味は？", a: "このごろは" },
+                { q: "consciousの意味は？", a: "意識して" },
+                { q: "armyの意味は？", a: "陸軍" },
+                { q: "give upの意味は？", a: "あきらめる" },
+                { q: "errorの意味は？", a: "故障" },
+                { q: "aquaの意味は？", a: "水" },
+                { q: "saintの意味は？", a: "聖人" },
+                { q: "warriorの意味は？", a: "戦士" },
+                { q: "trendの意味は？", a: "傾向" },
+                { q: "neatの意味は？", a: "きちんとした" },
+                { q: "commodityの意味は？", a: "商品" },
+                { q: "webの意味は？", a: "蜘蛛の巣" },
+                { q: "cycleの意味は？", a: "回転" },
+                { q: "ubiquitousの意味は？", a: "遍在する" },
+                { q: "hedgeの意味は？", a: "垣根" },
+                { q: "ISOの正式名称は？", a: "国際標準化機構" },
+                { q: "NAFTAの正式名称は？", a: "北米自由貿易協定" },
+                { q: "IPSのスペルは？", a: "intrusion prevention system" },
+                { q: "birth rateを日本語で？", a: "出生率" },
+                { q: "arms reductionを日本語で？", a: "軍縮" }
             ],
+            
             kanji: [
+                // 漢字の読み
                 { q: "「防人」の読み方は？", a: "さきもり" },
                 { q: "「皐月」の読み方は？", a: "さつき" },
-                { q: "「知己」の読み方は？", a: "ちき" }
+                { q: "「知己」の読み方は？", a: "ちき" },
+                { q: "「虚空」の読み方は？", a: "こくう" },
+                { q: "「語彙」の読み方は？", a: "ごい" },
+                { q: "「追悼」の読み方は？", a: "ついとう" },
+                { q: "「更迭」の読み方は？", a: "こうてつ" },
+                { q: "「猛者」の読み方は？", a: "もさ" },
+                { q: "「逐次」の読み方は？", a: "ちくじ" },
+                { q: "「憎悪」の読み方は？", a: "ぞうお" },
+                { q: "「愛惜」の読み方は？", a: "あいせき" },
+                { q: "「肢体」の読み方は？", a: "したい" },
+                { q: "「相殺」の読み方は？", a: "そうさい" },
+                { q: "「乾坤」の読み方は？", a: "けんこん" },
+                { q: "「熨斗」の読み方は？", a: "のし" },
+                { q: "「遊説」の読み方は？", a: "ゆうぜい" },
+                { q: "「出納」の読み方は？", a: "すいとう" },
+                { q: "「弾劾」の読み方は？", a: "だんがい" },
+                { q: "「市井」の読み方は？", a: "しせい" },
+                { q: "「非業」の読み方は？", a: "ひごう" },
+                { q: "「詩歌」の読み方は？", a: "しいか" },
+                { q: "「流転」の読み方は？", a: "るてん" },
+                { q: "「久遠」の読み方は？", a: "くおん" },
+                { q: "「蚊帳」の読み方は？", a: "かや" },
+                { q: "「建立」の読み方は？", a: "こんりゅう" },
+                { q: "「暴露」の読み方は？", a: "ばくろ" },
+                { q: "「流布」の読み方は？", a: "るふ" },
+                { q: "「定款」の読み方は？", a: "ていかん" },
+                { q: "「不穏」の読み方は？", a: "ふおん" },
+                { q: "「確執」の読み方は？", a: "かくしつ" },
+                { q: "「行脚」の読み方は？", a: "あんぎゃ" },
+                { q: "「欠伸」の読み方は？", a: "あくび" },
+                { q: "「殺陣」の読み方は？", a: "たて" },
+                { q: "「点前」の読み方は？", a: "てまえ" },
+                { q: "「呂律」の読み方は？", a: "ろれつ" },
+                { q: "「阿漕」の読み方は？", a: "あこぎ" },
+                { q: "「野点」の読み方は？", a: "のだて" },
+                { q: "「源氏名」の読み方は？", a: "げんじな" },
+                { q: "「言質」の読み方は？", a: "げんち" },
+                { q: "「眩暈」の読み方は？", a: "めまい" },
+                { q: "「香具師」の読み方は？", a: "やし" },
+                { q: "「杜氏」の読み方は？", a: "とうじ" },
+                { q: "「松明」の読み方は？", a: "たいまつ" },
+                { q: "「一矢」の読み方は？", a: "いっし" },
+                
+                // 漢字で書く
+                { q: "「うちょうてん」を漢字で書くと？", a: "有頂天" },
+                { q: "「なだれ」を漢字で書くと？", a: "雪崩" },
+                { q: "「だんまつま」を漢字で書くと？", a: "断末魔" },
+                { q: "「しゅらば」を漢字で書くと？", a: "修羅場" },
+                { q: "「いわかん」を漢字で書くと？", a: "違和感" },
+                { q: "「さはんじ」を漢字で書くと？", a: "茶飯事" },
+                { q: "「くじゅう」を漢字で書くと？", a: "苦汁" },
+                { q: "「いつだつ」を漢字で書くと？", a: "逸脱" },
+                
+                // 温泉地の読み方
+                { q: "温泉地「三朝」の読み方は？", a: "みささ" },
+                { q: "温泉地「芦原」の読み方は？", a: "あしはら" },
+                { q: "温泉地「温泉津」の読み方は？", a: "ゆのつ" },
+                { q: "温泉地「寿都」の読み方は？", a: "すっつ" },
+                { q: "温泉地「鉄輪」の読み方は？", a: "かんなわ" },
+                { q: "温泉地「指宿」の読み方は？", a: "いぶすき" },
+                { q: "温泉地「皆生」の読み方は？", a: "かいけ" },
+                { q: "温泉地「五浦」の読み方は？", a: "いづら" },
+                { q: "温泉地「下呂」の読み方は？", a: "げろ" },
+                { q: "温泉地「夏油」の読み方は？", a: "げとう" },
+                
+                // 同音異義語
+                { q: "「いどう」で「場所を変える」意味の漢字は？", a: "移動" },
+                { q: "「いどう」で「人事の変更」意味の漢字は？", a: "異動" },
+                { q: "「いぎ」で「意味・価値」を表す漢字は？", a: "意義" },
+                { q: "「いぎ」で「反対意見」を表す漢字は？", a: "異議" },
+                { q: "「えいせい」で「人工天体」を表す漢字は？", a: "衛星" },
+                { q: "「えいせい」で「清潔」を表す漢字は？", a: "衛生" },
+                { q: "「きこう」で「天候」を表す漢字は？", a: "気候" },
+                { q: "「きこう」で「組織・仕組み」を表す漢字は？", a: "機構" },
+                
+                // 漢字熟語の穴埋め
+                { q: "暗□で「暗い街」を表す。□に入る漢字は？", a: "街" },
+                { q: "大□柱で「家の中心となる柱」を表す。□に入る漢字は？", a: "黒" },
+                { q: "恒□で「永続的」を表す。□に入る漢字は？", a: "久" },
+                { q: "持□力で「持続する力」を表す。□に入る漢字は？", a: "久" },
+                { q: "無□作で「無造作」を表す。□に入る漢字は？", a: "造" },
+                { q: "建□で「建物」を表す。□に入る漢字は？", a: "物" },
+                { q: "馬□木で「植物の名前」を表す。□に入る漢字は？", a: "酔" },
+                { q: "泥□で「泥酔」を表す。□に入る漢字は？", a: "酔" },
+                { q: "生□地で「生産地」を表す。□に入る漢字は？", a: "産" },
+                { q: "水□で「水産物」を表す。□に入る漢字は？", a: "産" },
+                { q: "御□度で「禁止事項」を表す。□に入る漢字は？", a: "法" },
+                { q: "司□で「司法」を表す。□に入る漢字は？", a: "法" },
+                { q: "今□際で「最期の時」を表す。□に入る漢字は？", a: "際" },
+                { q: "三□車で「三輪車」を表す。□に入る漢字は？", a: "輪" },
+                { q: "合□的で「合理的」を表す。□に入る漢字は？", a: "理" },
+                { q: "推□で「推理」を表す。□に入る漢字は？", a: "理" },
+                { q: "度□視で「無視する」を表す。□に入る漢字は？", a: "外" },
+                { q: "疎□感で「疎外感」を表す。□に入る漢字は？", a: "外" },
+                { q: "試□石で「試金石」を表す。□に入る漢字は？", a: "金" },
+                { q: "錬□で「錬金術」を表す。□に入る漢字は？", a: "金" },
+                { q: "有□天で「有頂天」を表す。□に入る漢字は？", a: "頂" },
+                { q: "仏□で「仏頂面」を表す。□に入る漢字は？", a: "頂" },
+                { q: "知□意で「知情意」を表す。□に入る漢字は？", a: "情" },
+                { q: "感□で「感情」を表す。□に入る漢字は？", a: "情" },
+                { q: "金□枝で「えにしだ（植物）」を表す。□に入る漢字は？", a: "雀" },
+                { q: "麻□で「麻雀」を表す。□に入る漢字は？", a: "雀" },
+                { q: "記□品で「記念品」を表す。□に入る漢字は？", a: "念" },
+                { q: "正□で「正念場」を表す。□に入る漢字は？", a: "念" }
+            ],
+            
+            idiom: [
+                // 四字熟語
+                { q: "「破顔□□」の□に入る漢字は？", a: "一笑" },
+                { q: "「千差□□」の□に入る漢字は？", a: "万別" },
+                { q: "「自業□□」の□に入る漢字は？", a: "自得" },
+                { q: "「大器□□」の□に入る漢字は？", a: "晩成" },
+                { q: "「同工□□」の□に入る漢字は？", a: "異曲" },
+                { q: "「無我□□」の□に入る漢字は？", a: "夢中" },
+                { q: "「千載□□」の□に入る漢字は？", a: "一遇" },
+                { q: "「正真□□」の□に入る漢字は？", a: "正銘" },
+                { q: "「温故□□」の□に入る漢字は？", a: "知新" },
+                { q: "「因果□□」の□に入る漢字は？", a: "応報" },
+                { q: "「栄枯□□」の□に入る漢字は？", a: "盛衰" },
+                { q: "「五里□□」の□に入る漢字は？", a: "霧中" },
+                { q: "「枝葉□□」の□に入る漢字は？", a: "末節" },
+                { q: "「内憂□□」の□に入る漢字は？", a: "外患" },
+                { q: "「朝令□□」の□に入る漢字は？", a: "暮改" },
+                { q: "「絶体□□」の□に入る漢字は？", a: "絶命" },
+                { q: "「前代□□」の□に入る漢字は？", a: "未聞" },
+                { q: "「付和□□」の□に入る漢字は？", a: "雷同" },
+                { q: "「優柔□□」の□に入る漢字は？", a: "不断" },
+                { q: "「臨機□□」の□に入る漢字は？", a: "応変" },
+                { q: "「一期□□」の□に入る漢字は？", a: "一会" },
+                { q: "「一朝□□」の□に入る漢字は？", a: "一夕" },
+                { q: "「紆余□□」の□に入る漢字は？", a: "曲折" },
+                { q: "「疑心□□」の□に入る漢字は？", a: "暗鬼" },
+                { q: "「旧態□□」の□に入る漢字は？", a: "依然" },
+                { q: "「驚天□□」の□に入る漢字は？", a: "動地" },
+                { q: "「針小□□」の□に入る漢字は？", a: "棒大" },
+                { q: "「羊頭□□」の□に入る漢字は？", a: "狗肉" },
+                { q: "「東奔□□」の□に入る漢字は？", a: "西走" },
+                { q: "「厚顔□□」の□に入る漢字は？", a: "無恥" },
+                { q: "「虎視□□」の□に入る漢字は？", a: "眈々" },
+                { q: "「行雲□□」の□に入る漢字は？", a: "流水" },
+                { q: "「十人□□」の□に入る漢字は？", a: "十色" },
+                { q: "「島国□□」の□に入る漢字は？", a: "根性" },
+                { q: "「古代□□」の□に入る漢字は？", a: "文明" },
+                { q: "「四面□□」の□に入る漢字は？", a: "楚歌" },
+                { q: "「月下□□」の□に入る漢字は？", a: "氷人" },
+                { q: "「我田□□」の□に入る漢字は？", a: "引水" },
+                { q: "「大同□□」の□に入る漢字は？", a: "小異" },
+                { q: "「酒池□□」の□に入る漢字は？", a: "肉林" },
+                { q: "「古今□□」の□に入る漢字は？", a: "東西" },
+                { q: "「臥薪□□」の□に入る漢字は？", a: "嘗胆" },
+                { q: "「電光□□」の□に入る漢字は？", a: "石火" },
+                { q: "「無味□□」の□に入る漢字は？", a: "乾燥" },
+                { q: "「呉越□□」の□に入る漢字は？", a: "同舟" },
+                { q: "「四苦□□」の□に入る漢字は？", a: "八苦" },
+                { q: "「言語□□」の□に入る漢字は？", a: "道断" },
+                { q: "「戦々□□」の□に入る漢字は？", a: "恐々" },
+                { q: "「五里□□」の□に入る漢字は？", a: "霧中" },
+                { q: "「大言□□」の□に入る漢字は？", a: "壮語" },
+                { q: "「天衣□□」の□に入る漢字は？", a: "無縫" },
+                { q: "「談論□□」の□に入る漢字は？", a: "風発" },
+                { q: "「急転□□」の□に入る漢字は？", a: "直下" },
+                { q: "「虚虚□□」の□に入る漢字は？", a: "実実" },
+                { q: "「有言□□」の□に入る漢字は？", a: "実行" }
+            ],
+            
+            proverb: [
+                // ことわざ
+                { q: "「身から出た□」の□に入る漢字は？", a: "錆" },
+                { q: "「□を刺す」で「決定的な一撃を加える」意味。□に入る言葉は？", a: "とどめ" },
+                { q: "「勇み□」で「調子に乗って失敗する」意味。□に入る言葉は？", a: "足" },
+                { q: "「度□を抜く」で「非常に驚かせる」意味。□に入る言葉は？", a: "肝" },
+                { q: "「藪から□」で「唐突に」の意味。□に入る言葉は？", a: "棒" },
+                { q: "「□をふく」で「気が動転する」意味。□に入る言葉は？", a: "あわ" },
+                { q: "「五十歩□□歩」で「大差ない」意味。□に入る言葉は？", a: "百" },
+                { q: "「修羅場を□」で「厳しい状況を経験する」意味。□に入る言葉は？", a: "くぐる" },
+                { q: "「□を削る」で「激しく競り合う」意味。□に入る言葉は？", a: "鎬" },
+                { q: "「どんぶり□□」で「大まかな金銭管理」を表す。□に入る言葉は？", a: "勘定" },
+                { q: "「一□の夢」で「栄華のはかなさ」を表す。□に入る言葉は？", a: "炊" },
+                { q: "「一敗□にまみれる」で「完敗する」意味。□に入る言葉は？", a: "地" },
+                { q: "「袖振り合うも多生の□」の□に入る言葉は？", a: "縁" },
+                { q: "「弱□」で「男子20歳」を表す。□に入る言葉は？", a: "冠" },
+                { q: "「虎穴に入らずんば虎□を得ず」の□に入る言葉は？", a: "子" },
+                { q: "「月夜に□灯」で「無駄なこと」を表す。□に入る言葉は？", a: "提" },
+                { q: "「木で□をくくる」で「無愛想」を表す。□に入る言葉は？", a: "鼻" },
+                { q: "「暖簾に□押し」で「効果がない」意味。□に入る言葉は？", a: "腕" },
+                { q: "「泣きっ□に蜂」で「踏んだり蹴ったり」の意味。□に入る言葉は？", a: "面" },
+                { q: "「弱り□にたたり目」で「踏んだり蹴ったり」の意味。□に入る言葉は？", a: "目" }
+            ],
+            
+            antonym: [
+                // 反義語
+                { q: "「栄転」の反対は？", a: "左遷" },
+                { q: "「干渉」の反対は？", a: "放任" },
+                { q: "「軽率」の反対は？", a: "慎重" },
+                { q: "「需要」の反対は？", a: "供給" },
+                { q: "「刹那」の反対は？", a: "継続" },
+                { q: "「安全」の反対は？", a: "危険" },
+                { q: "「精神」の反対は？", a: "肉体" },
+                { q: "「創造」の反対は？", a: "破壊" },
+                { q: "「華美」の反対は？", a: "質素" },
+                { q: "「困難」の反対は？", a: "容易" },
+                { q: "「平凡」の反対は？", a: "非凡" },
+                { q: "「拡大」の反対は？", a: "縮小" },
+                { q: "「単純」の反対は？", a: "複雑" },
+                { q: "「玄人」の反対は？", a: "素人" },
+                { q: "「実在」の反対は？", a: "架空" },
+                { q: "「許可」の反対は？", a: "禁止" },
+                { q: "「永劫」の反対は？", a: "刹那" },
+                { q: "「生産」の反対は？", a: "消費" },
+                { q: "「濃厚」の反対は？", a: "希薄" },
+                { q: "「豊富」の反対は？", a: "貧弱" },
+                { q: "「横柄」の反対は？", a: "謙虚" },
+                { q: "「親密」の反対は？", a: "疎遠" },
+                { q: "「延長」の反対は？", a: "短縮" },
+                { q: "「自立」の反対は？", a: "依存" },
+                { q: "「淡泊」の反対は？", a: "濃厚" },
+                { q: "「警戒」の反対は？", a: "油断" },
+                { q: "「供給」の反対は？", a: "需要" },
+                { q: "「天然」の反対は？", a: "人工" },
+                { q: "「絶対」の反対は？", a: "相対" },
+                { q: "「偶然」の反対は？", a: "必然" },
+                { q: "「井上」の反対は？", a: "模倣" },
+                { q: "「加入」の反対は？", a: "脱退" },
+                { q: "「利益」の反対は？", a: "損失" },
+                { q: "「原因」の反対は？", a: "結果" }
+            ],
+            
+            geography: [
+                // 県庁所在地
+                { q: "北海道の道庁所在地は？", a: "札幌" },
+                { q: "愛媛県の県庁所在地は？", a: "松山" },
+                { q: "三重県の県庁所在地は？", a: "津" },
+                { q: "兵庫県の県庁所在地は？", a: "神戸" },
+                { q: "石川県の県庁所在地は？", a: "金沢" },
+                { q: "愛知県の県庁所在地は？", a: "名古屋" },
+                { q: "宮城県の県庁所在地は？", a: "仙台" },
+                { q: "沖縄県の県庁所在地は？", a: "那覇" },
+                { q: "島根県の県庁所在地は？", a: "松江" },
+                { q: "香川県の県庁所在地は？", a: "高松" },
+                { q: "神奈川県の県庁所在地は？", a: "横浜" },
+                
+                // 国と首都
+                { q: "トルコの首都は？", a: "アンカラ" },
+                { q: "キプロスの首都は？", a: "ニコシア" },
+                { q: "シリアの首都は？", a: "ダマスカス" },
+                { q: "レバノンの首都は？", a: "ベイルート" },
+                { q: "イスラエルの首都は？", a: "エルサレム" },
+                { q: "ヨルダンの首都は？", a: "アンマン" },
+                { q: "イラクの首都は？", a: "バグダッド" },
+                { q: "イランの首都は？", a: "テヘラン" },
+                { q: "アフガニスタンの首都は？", a: "カブール" },
+                { q: "パキスタンの首都は？", a: "イスラマバード" },
+                { q: "クウェートの首都は？", a: "クウェート" },
+                { q: "サウジアラビアの首都は？", a: "リヤド" },
+                { q: "イエメンの首都は？", a: "サヌア" },
+                { q: "オマーンの首都は？", a: "マスカット" },
+                { q: "アラブ首長国連邦の首都は？", a: "アブダビ" },
+                { q: "カタールの首都は？", a: "ドーハ" },
+                { q: "バーレーンの首都は？", a: "マナーマ" },
+                { q: "エジプトの首都は？", a: "カイロ" },
+                { q: "リビアの首都は？", a: "トリポリ" },
+                { q: "チュニジアの首都は？", a: "チュニス" },
+                
+                // 太陽系
+                { q: "太陽系で最大の惑星は？", a: "木星" },
+                { q: "太陽系で最も太陽に近い惑星は？", a: "水星" },
+                { q: "太陽系で地球の内側を公転する惑星は？（2つのうち1つ）", a: "金星" },
+                
+                // 気候
+                { q: "サバナ気候の特徴は？", a: "熱帯夏季少雨気候" },
+                { q: "ステップ気候の特徴は？", a: "降水量は少なく雨季には少量の雨が降る" }
+            ],
+            
+            history: [
+                // 日本史
+                { q: "古事記が編纂された年は？", a: "712" },
+                { q: "日本書紀が完成した年は？", a: "720" },
+                { q: "日露戦争の講和条約が結ばれた都市は？", a: "ポーツマス" },
+                { q: "日本海海戦で活躍した連合艦隊司令長官は？", a: "東郷平八郎" },
+                { q: "旅順攻囲戦を指揮した日本軍の将軍は？", a: "乃木希典" },
+                { q: "日露戦争後に設立された南満州鉄道の略称は？", a: "満鉄" },
+                { q: "森鴎外の出身地は？", a: "島根県津和野町" },
+                { q: "「舞姫」の作者は？", a: "森鴎外" },
+                
+                // 中国史
+                { q: "中華人民共和国が成立した年は？", a: "1949" },
+                { q: "辛亥革命が起きた年は？", a: "1911" },
+                { q: "中華民国の初代大総統は？", a: "孫文" },
+                { q: "中国国民党の指導者で台湾に移った人物は？", a: "蒋介石" },
+                { q: "中国共産党の初代指導者は？", a: "毛沢東" },
+                { q: "中国の改革開放政策を推進した指導者は？", a: "鄧小平" },
+                { q: "中国の現在の国家主席は？（2025年時点）", a: "習近平" },
+                { q: "中国の首都は？", a: "北京" },
+                { q: "中国の人口は約何億人？", a: "13" },
+                { q: "中国の通貨単位は？", a: "人民元" },
+                
+                // 世界史
+                { q: "18世紀のオーストリアの王朝名は？", a: "ハプスブルク家" },
+                { q: "18世紀のロシアの王朝名は？", a: "ロマノフ王朝" },
+                { q: "18世紀のフランスの王朝名は？", a: "ブルボン王朝" },
+                { q: "赤十字を作った人物は？", a: "アンリ・デュナン" },
+                { q: "「ドン・キホーテ」の作者は？", a: "セルバンテス" },
+                { q: "「真夏の夜の夢」の作者は？", a: "シェイクスピア" }
+            ],
+            
+            science: [
+                // 化学
+                { q: "30％の食塩水400gに食塩は何g溶けている？", a: "120" },
+                { q: "5％の食塩水60gを6％にするには水を何g蒸発させる？", a: "10" },
+                { q: "3Na+3H2O=□NaOH+H2 の□に入る数字は？", a: "3" },
+                { q: "ある物質から酸素を失うか、水素を結合する状態を何という？", a: "還元" },
+                
+                // 生物
+                { q: "メンデルの法則の一つ「□□の法則」の□に入る言葉は？", a: "優劣" },
+                { q: "遺伝子型AaとAaを掛け合わせた分離比AA:Aa:aaは？", a: "1:2:1" },
+                
+                // 地学
+                { q: "台風など低気圧で海面水位が上昇する現象は？", a: "高潮" },
+                { q: "赤道に平行な縞模様がある最大の惑星は？", a: "木星" },
+                { q: "宵の明星、明けの明星と言われる惑星は？", a: "金星" },
+                { q: "梅雨・秋雨前線など移動しにくい前線を何という？", a: "停滞前線" }
+            ],
+            
+            politics: [
+                // 国際関係
+                { q: "G8に参加している国の数は？", a: "8" },
+                { q: "BRICsの「B」が表す国は？", a: "ブラジル" },
+                { q: "BRICsの「R」が表す国は？", a: "ロシア" },
+                { q: "BRICsの「I」が表す国は？", a: "インド" },
+                { q: "BRICsの「C」が表す国は？", a: "中国" },
+                { q: "VISTAの「V」が表す国は？", a: "ベトナム" },
+                { q: "VISTAの「I」が表す国は？", a: "インドネシア" },
+                { q: "VISTAの「S」が表す国は？", a: "南アフリカ" },
+                { q: "VISTAの「T」が表す国は？", a: "トルコ" },
+                { q: "VISTAの「A」が表す国は？", a: "アルゼンチン" },
+                { q: "PIIGSはどこの地域の経済危機を表す？", a: "欧州" },
+                
+                // ビジネス用語
+                { q: "M&Aの正式名称は？", a: "merger and acquisition" },
+                { q: "バイラルマーケティングとは何を使った宣伝？", a: "口コミ" },
+                { q: "自衛隊の英語表記は？", a: "japan self-defense force" },
+                
+                // 日本の政治
+                { q: "島根県の現在の知事は？（溝口氏の後）", a: "丸山達也" },
+                
+                // オリンピック
+                { q: "2008年夏季オリンピックの開催地は？", a: "北京" },
+                { q: "2010年冬季オリンピックの開催地は？", a: "バンクーバー" },
+                { q: "2012年夏季オリンピックの開催地は？", a: "ロンドン" },
+                { q: "2014年冬季オリンピックの開催地は？", a: "ソチ" },
+                { q: "2016年夏季オリンピックの開催地は？", a: "リオデジャネイロ" },
+                { q: "2018年冬季オリンピックの開催地は？", a: "平昌" },
+                
+                // 今年の漢字
+                { q: "2011年の「今年の漢字」は？", a: "絆" },
+                { q: "2012年の「今年の漢字」は？", a: "金" },
+                { q: "2013年の「今年の漢字」は？", a: "輪" },
+                { q: "2014年の「今年の漢字」は？", a: "税" }
             ]
         };
 
         let selectedCategory = '';
         let currentQuestions = [];
         let currentQuestionIndex = 0;
+        let score = 0;
+        let totalQuestions = 0;
 
         function selectCategory(category) {
             selectedCategory = category;
+            
+            // カテゴリーボタンのアクティブ状態を更新
             document.querySelectorAll('.category-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
             event.target.classList.add('active');
+            
+            // スタートボタンを表示
             document.getElementById('startBtn').style.display = 'block';
         }
 
         function startQuiz() {
+            if (!selectedCategory) {
+                alert('カテゴリーを選択してください');
+                return;
+            }
+
+            // 問題を準備
             if (selectedCategory === 'all') {
                 currentQuestions = [];
                 Object.values(questions).forEach(categoryQuestions => {
@@ -227,16 +804,32 @@
                 currentQuestions = [...questions[selectedCategory]];
             }
 
+            // 問題をシャッフル
+            currentQuestions = shuffleArray(currentQuestions);
+            totalQuestions = currentQuestions.length;
             currentQuestionIndex = 0;
+            score = 0;
+
+            // 画面を切り替え
             document.getElementById('startScreen').style.display = 'none';
             document.getElementById('quizContainer').style.display = 'block';
+
+            // 最初の問題を表示
             showQuestion();
+        }
+
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
         }
 
         function showQuestion() {
             if (currentQuestionIndex >= currentQuestions.length) {
-                alert('全問題終了！お疲れ様でした！');
-                location.reload();
+                showFinalScore();
                 return;
             }
 
@@ -244,7 +837,11 @@
             document.getElementById('question').textContent = question.q;
             document.getElementById('answerInput').value = '';
             document.getElementById('result').innerHTML = '';
-            document.getElementById('progress').textContent = `問題 ${currentQuestionIndex + 1} / ${currentQuestions.length}`;
+            document.getElementById('progress').textContent = `問題 ${currentQuestionIndex + 1} / ${totalQuestions}`;
+            updateScore();
+            
+            // 入力フィールドにフォーカス
+            document.getElementById('answerInput').focus();
         }
 
         function checkAnswer() {
@@ -252,21 +849,68 @@
             const correctAnswer = currentQuestions[currentQuestionIndex].a.toLowerCase();
             const resultDiv = document.getElementById('result');
 
-            if (userAnswer === correctAnswer || 
-                userAnswer.replace(/\s+/g, '') === correctAnswer.replace(/\s+/g, '')) {
-                resultDiv.innerHTML = '<div class="result correct">正解！</div>';
+            if (userAnswer === '') {
+                alert('答えを入力してください');
+                return;
+            }
+
+            // 正解判定（スペースや句読点の違いも考慮）
+            const normalizedUserAnswer = userAnswer.replace(/[\s\-\.\,\'\"]/g, '');
+            const normalizedCorrectAnswer = correctAnswer.replace(/[\s\-\.\,\'\"]/g, '');
+
+            if (normalizedUserAnswer === normalizedCorrectAnswer || 
+                userAnswer === correctAnswer) {
+                resultDiv.innerHTML = '<div class="result correct">正解！素晴らしい！</div>';
+                score++;
+                updateScore();
             } else {
-                resultDiv.innerHTML = `<div class="result incorrect">不正解。正解は「${currentQuestions[currentQuestionIndex].a}」です</div>`;
+                resultDiv.innerHTML = `<div class="result incorrect">残念！正解は「${currentQuestions[currentQuestionIndex].a}」です</div>`;
             }
         }
 
         function showAnswer() {
-            document.getElementById('result').innerHTML = `<div class="result">正解: ${currentQuestions[currentQuestionIndex].a}</div>`;
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `<div class="result show-answer">正解: ${currentQuestions[currentQuestionIndex].a}</div>`;
         }
 
         function nextQuestion() {
             currentQuestionIndex++;
             showQuestion();
+        }
+
+        function updateScore() {
+            document.getElementById('score').textContent = `得点: ${score} / ${currentQuestionIndex} 問`;
+        }
+
+        function showFinalScore() {
+            const percentage = Math.round((score / totalQuestions) * 100);
+            let message = '';
+            
+            if (percentage >= 90) {
+                message = '素晴らしい！完璧に近い成績です！';
+            } else if (percentage >= 70) {
+                message = 'よくできました！';
+            } else if (percentage >= 50) {
+                message = 'まずまずです。もう一度挑戦してみましょう！';
+            } else {
+                message = '復習が必要です。頑張りましょう！';
+            }
+
+            document.getElementById('quizContainer').innerHTML = `
+                <div class="question-card">
+                    <h2>学習終了！</h2>
+                    <p style="font-size: 2rem; margin: 20px 0;">最終得点: ${score} / ${totalQuestions}</p>
+                    <p style="font-size: 1.5rem; margin: 20px 0;">正答率: ${percentage}%</p>
+                    <p style="font-size: 1.2rem; color: #666;">${message}</p>
+                </div>
+                <button class="start-btn" onclick="location.reload()">もう一度挑戦する</button>
+            `;
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                checkAnswer();
+            }
         }
     </script>
 </body>
